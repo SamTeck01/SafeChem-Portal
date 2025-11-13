@@ -21,6 +21,9 @@ import {
   View,
 } from "react-native";
 
+// Create animated FlatList for native driver support
+const AnimatedFlatList = Animated.createAnimatedComponent(FlatList<Chemical>);
+
 // Random CID generation (same as pubchem-demo)
 const MAX_CID = 100000000;
 const MIN_CID = 1;
@@ -292,7 +295,7 @@ export default function HomeScreen() {
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111B21" : "#FFFFFF" }}
     >
-      <FlatList
+      <AnimatedFlatList
         data={displayChemicals}
         ListHeaderComponent={renderHeader}
         renderItem={({ item, index }) => (
@@ -311,6 +314,11 @@ export default function HomeScreen() {
         initialNumToRender={10}
         updateCellsBatchingPeriod={50}
         showsVerticalScrollIndicator={false}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: true }
+        )}
+        scrollEventThrottle={16}
         ListFooterComponent={
           feedLoading ? (
             <View className="py-6">

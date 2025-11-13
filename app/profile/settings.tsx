@@ -7,15 +7,19 @@ import {
   ScrollView,
   Switch,
   Alert,
+  useColorScheme,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const { themeMode, setThemeMode } = useTheme();
   const [notifications, setNotifications] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
   const [autoSync, setAutoSync] = useState(true);
 
   const handleChangePassword = () => {
@@ -72,24 +76,61 @@ export default function SettingsScreen() {
 
         {/* Appearance Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Appearance</Text>
-          <View style={styles.settingItem}>
+          <Text style={[styles.sectionTitle, { color: isDark ? '#8696A0' : '#666' }]}>Appearance</Text>
+          
+          <TouchableOpacity 
+            style={[styles.settingItem, { backgroundColor: isDark ? '#1F2C34' : '#fff' }]}
+            onPress={() => setThemeMode('light')}
+          >
             <View style={styles.settingLeft}>
-              <Ionicons name="moon-outline" size={24} color="#2d5875" />
+              <Ionicons name="sunny-outline" size={24} color={isDark ? '#10B981' : '#2d5875'} />
               <View style={styles.settingTextContainer}>
-                <Text style={styles.settingTitle}>Dark Mode</Text>
-                <Text style={styles.settingDescription}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#E9EDEF' : '#333' }]}>Light Mode</Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8696A0' : '#666' }]}>
+                  Use light theme
+                </Text>
+              </View>
+            </View>
+            {themeMode === 'light' && (
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.settingItem, { backgroundColor: isDark ? '#1F2C34' : '#fff' }]}
+            onPress={() => setThemeMode('dark')}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="moon-outline" size={24} color={isDark ? '#10B981' : '#2d5875'} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#E9EDEF' : '#333' }]}>Dark Mode</Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8696A0' : '#666' }]}>
                   Use dark theme
                 </Text>
               </View>
             </View>
-            <Switch
-              value={darkMode}
-              onValueChange={setDarkMode}
-              trackColor={{ false: '#d0d0d0', true: '#2d5875' }}
-              thumbColor="#fff"
-            />
-          </View>
+            {themeMode === 'dark' && (
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity 
+            style={[styles.settingItem, { backgroundColor: isDark ? '#1F2C34' : '#fff' }]}
+            onPress={() => setThemeMode('system')}
+          >
+            <View style={styles.settingLeft}>
+              <Ionicons name="phone-portrait-outline" size={24} color={isDark ? '#10B981' : '#2d5875'} />
+              <View style={styles.settingTextContainer}>
+                <Text style={[styles.settingTitle, { color: isDark ? '#E9EDEF' : '#333' }]}>System Default</Text>
+                <Text style={[styles.settingDescription, { color: isDark ? '#8696A0' : '#666' }]}>
+                  Follow system theme
+                </Text>
+              </View>
+            </View>
+            {themeMode === 'system' && (
+              <Ionicons name="checkmark-circle" size={24} color="#10B981" />
+            )}
+          </TouchableOpacity>
         </View>
 
         {/* Data & Storage Section */}

@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, useColorScheme, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, useColorScheme, ActivityIndicator, Share, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getChemicalProperties, getChemicalSafetyData } from '@/services/pubchemApi';
 import { generateSDSFromPubChem, SDSData } from '@/utils/generateSDS';
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { Chemical } from '@/types/chemical';
 
 const hazardColors = {
   Low: "#10B981",
@@ -34,6 +36,7 @@ export default function ChemicalDetailScreen() {
   const [loading, setLoading] = useState(true);
   const [chemicalData, setChemicalData] = useState<ChemicalData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { isBookmarked, toggleBookmark } = useBookmarks();
 
   useEffect(() => {
     loadChemicalData();
@@ -88,6 +91,48 @@ export default function ChemicalDetailScreen() {
     }
   };
 
+  const handleShare = async () => {
+    if (!chemicalData) return;
+    
+    try {
+      const message = `${chemicalData.name} (${chemicalData.formula})\n\nHazard Level: ${chemicalData.hazardLevel}\n${chemicalData.description}\n\nView full SDS in SafeChem Portal`;
+      
+      await Share.share({
+        message,
+        title: `${chemicalData.name} - Safety Data`,
+      });
+    } catch (error) {
+      console.error('Share error:', error);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!chemicalData) return;
+    
+    try {
+      const chemical: Chemical = {
+        id: chemicalData.id,
+        name: chemicalData.name,
+        formula: chemicalData.formula,
+        casNumber: chemicalData.casNumber,
+        category: chemicalData.category as any,
+        hazardLevel: chemicalData.hazardLevel,
+        description: chemicalData.description,
+      };
+      
+      await toggleBookmark(chemical);
+      
+      Alert.alert(
+        isBookmarked(id) ? 'Removed from Saved' : 'Saved',
+        isBookmarked(id) 
+          ? `${chemicalData.name} has been removed from your saved chemicals.`
+          : `${chemicalData.name} has been saved to your collection.`
+      );
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update bookmark. Please try again.');
+    }
+  };
+
   if (loading) {
     return (
       <View
@@ -136,13 +181,37 @@ export default function ChemicalDetailScreen() {
           ]}
           className="flex-1 justify-end p-6"
         >
-          <TouchableOpacity
-            onPress={() => router.back()}
-            className="absolute top-12 left-4 w-10 h-10 rounded-full items-center justify-center"
-            style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
-          >
-            <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
+          <View className="absolute top-12 left-4 right-4 flex-row justify-between">
+            <TouchableOpacity
+              onPress={() => router.back()}
+              className="w-10 h-10 rounded-full items-center justify-center"
+              style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
+            >
+              <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
+            </TouchableOpacity>
+            
+            <View className="flex-row">
+              <TouchableOpacity
+                onPress={handleShare}
+                className="w-10 h-10 rounded-full items-center justify-center mr-2"
+                style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
+              >
+                <Ionicons name="share-outline" size={24} color="#FFFFFF" />
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                onPress={handleBookmark}
+                className="w-10 h-10 rounded-full items-center justify-center"
+                style={{ backgroundColor: "rgba(0, 0, 0, 0.3)" }}
+              >
+                <Ionicons 
+                  name={isBookmarked(id) ? "bookmark" : "bookmark-outline"} 
+                  size={24} 
+                  color="#FFFFFF" 
+                />
+              </TouchableOpacity>
+            </View>
+          </View>
 
           <View>
             <Text className="text-3xl font-bold text-white mb-2">

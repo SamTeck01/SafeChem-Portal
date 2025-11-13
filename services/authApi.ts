@@ -1,7 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Configuration
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://your-api-url.com/api';
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+if (!API_BASE_URL) {
+  throw new Error('EXPO_PUBLIC_API_URL is not configured. Please check your .env file.');
+}
 const TOKEN_KEY = '@safechem_auth_token';
 const USER_KEY = '@safechem_user';
 
@@ -43,6 +46,7 @@ export interface GoogleLoginData {
 
 class AuthApiService {
   private token: string | null = null;
+  private readonly REQUEST_TIMEOUT = 10000; // 10 seconds
 
   /**
    * Initialize the service by loading stored token
@@ -101,11 +105,34 @@ class AuthApiService {
   }
 
   /**
+   * Fetch with timeout
+   */
+  private async fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), this.REQUEST_TIMEOUT);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new Error('Request timeout. Please check your internet connection.');
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Login user
    */
   async login(credentials: LoginCredentials): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(credentials),
@@ -125,7 +152,7 @@ class AuthApiService {
    */
   async googleLogin(data: GoogleLoginData): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/google`, {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/auth/google`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(data),
@@ -145,7 +172,7 @@ class AuthApiService {
    */
   async signUp(credentials: SignUpCredentials): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/signup`, {
+      const response = await this.fetchWithTimeout(`${API_BASE_URL}/auth/signup`, {
         method: 'POST',
         headers: this.getHeaders(),
         body: JSON.stringify(credentials),

@@ -1,203 +1,96 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-} from 'react-native';
+import React from 'react';
+import { View, Text, FlatList, TouchableOpacity, useColorScheme, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-
-interface SavedChemical {
-  id: string;
-  name: string;
-  formula: string;
-  savedDate: string;
-}
+import { useBookmarks } from '@/hooks/useBookmarks';
+import { ChemicalCard } from '@/components/ChemicalCard';
 
 export default function SavedChemicalsScreen() {
   const router = useRouter();
-  
-  // Mock data - replace with actual saved chemicals from your backend/storage
-  const [savedChemicals] = useState<SavedChemical[]>([
-    {
-      id: '1',
-      name: 'Sodium Chloride',
-      formula: 'NaCl',
-      savedDate: '2 days ago',
-    },
-    {
-      id: '2',
-      name: 'Water',
-      formula: 'H₂O',
-      savedDate: '1 week ago',
-    },
-    {
-      id: '3',
-      name: 'Carbon Dioxide',
-      formula: 'CO₂',
-      savedDate: '2 weeks ago',
-    },
-  ]);
-
-  const renderChemicalItem = ({ item }: { item: SavedChemical }) => (
-    <TouchableOpacity
-      style={styles.chemicalCard}
-      onPress={() => router.push(`/chemical/${item.id}`)}
-    >
-      <View style={styles.chemicalIcon}>
-        <Ionicons name="flask" size={32} color="#2d5875" />
-      </View>
-      <View style={styles.chemicalInfo}>
-        <Text style={styles.chemicalName}>{item.name}</Text>
-        <Text style={styles.chemicalFormula}>{item.formula}</Text>
-        <Text style={styles.savedDate}>Saved {item.savedDate}</Text>
-      </View>
-      <TouchableOpacity style={styles.removeButton}>
-        <Ionicons name="bookmark" size={24} color="#2d5875" />
-      </TouchableOpacity>
-    </TouchableOpacity>
-  );
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === 'dark';
+  const { bookmarks, loading } = useBookmarks();
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#2d5875" />
+    <SafeAreaView 
+      className="flex-1" 
+      style={{ backgroundColor: isDark ? '#111B21' : '#F5F5F5' }}
+      edges={['top']}
+    >
+      {/* Header */}
+      <View 
+        className="px-4 py-4 border-b flex-row items-center"
+        style={{ 
+          backgroundColor: isDark ? '#1F2C34' : '#fff',
+          borderBottomColor: isDark ? '#2A3942' : '#e0e0e0'
+        }}
+      >
+        <TouchableOpacity onPress={() => router.back()} className="mr-4">
+          <Ionicons name="arrow-back" size={24} color={isDark ? '#E9EDEF' : '#2d5875'} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Saved Chemicals</Text>
-        <View style={styles.placeholder} />
+        <Text 
+          className="text-lg font-bold"
+          style={{ color: isDark ? '#E9EDEF' : '#2d5875' }}
+        >
+          Saved Chemicals
+        </Text>
       </View>
 
-      {savedChemicals.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Ionicons name="bookmark-outline" size={80} color="#ccc" />
-          <Text style={styles.emptyTitle}>No Saved Chemicals</Text>
-          <Text style={styles.emptyDescription}>
+      {/* Content */}
+      {loading ? (
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color="#10B981" />
+          <Text
+            className="mt-4"
+            style={{ color: isDark ? '#8696A0' : '#666' }}
+          >
+            Loading saved chemicals...
+          </Text>
+        </View>
+      ) : bookmarks.length === 0 ? (
+        <View className="flex-1 items-center justify-center px-8">
+          <View 
+            className="w-20 h-20 rounded-full items-center justify-center mb-4"
+            style={{ backgroundColor: isDark ? '#1F2C34' : '#f5f5f5' }}
+          >
+            <Ionicons name="bookmark-outline" size={40} color={isDark ? '#8696A0' : '#999'} />
+          </View>
+          <Text 
+            className="text-lg font-bold mb-2 text-center"
+            style={{ color: isDark ? '#E9EDEF' : '#1a3a52' }}
+          >
+            No Saved Chemicals
+          </Text>
+          <Text 
+            className="text-base text-center mb-4"
+            style={{ color: isDark ? '#8696A0' : '#666' }}
+          >
             Chemicals you bookmark will appear here
           </Text>
           <TouchableOpacity
-            style={styles.exploreButton}
-            onPress={() => router.push('/(tabs)')}
+            className="px-6 py-3 rounded-full"
+            style={{ backgroundColor: '#10B981' }}
+            onPress={() => router.push('/(tabs)/search')}
           >
-            <Text style={styles.exploreButtonText}>Explore Chemicals</Text>
+            <Text className="text-white font-semibold">Search Chemicals</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
-          data={savedChemicals}
-          renderItem={renderChemicalItem}
+          data={bookmarks}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <View className="mx-4 mb-3">
+              <ChemicalCard
+                chemical={item}
+                onPress={() => router.push(`/chemical/${item.id}` as any)}
+              />
+            </View>
+          )}
+          contentContainerStyle={{ paddingTop: 16, paddingBottom: 100 }}
         />
       )}
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e0e0e0',
-  },
-  backButton: {
-    padding: 4,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#2d5875',
-  },
-  placeholder: {
-    width: 32,
-  },
-  listContent: {
-    padding: 20,
-    gap: 12,
-  },
-  chemicalCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  chemicalIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#e3f2fd',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  chemicalInfo: {
-    flex: 1,
-  },
-  chemicalName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 4,
-  },
-  chemicalFormula: {
-    fontSize: 14,
-    color: '#2d5875',
-    marginBottom: 4,
-  },
-  savedDate: {
-    fontSize: 12,
-    color: '#999',
-  },
-  removeButton: {
-    padding: 8,
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#333',
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyDescription: {
-    fontSize: 14,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  exploreButton: {
-    backgroundColor: '#2d5875',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  exploreButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
