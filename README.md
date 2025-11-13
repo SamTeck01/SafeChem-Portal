@@ -1,50 +1,233 @@
-# Welcome to your Expo app 👋
+# SafeChem Portal 🧪
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A comprehensive chemical information portal built with React Native (Expo) and Node.js, featuring user authentication, chemical search, and AI-powered assistance.
 
-## Get started
+## ✨ Features
 
-1. Install dependencies
+- 🔐 **Complete Authentication System**
+  - User registration and login
+  - Password reset via email
+  - JWT token authentication
+  - Secure profile management
+  
+- 🔍 **Chemical Search**
+  - PubChem API integration
+  - Advanced search capabilities
+  - Chemical information display
+  - SDS generation
 
-   ```bash
-   npm install
-   ```
+- 🤖 **AI Chat Assistant**
+  - Chemical information queries
+  - Safety data assistance
 
-2. Start the app
+- 📱 **Modern UI/UX**
+  - Beautiful gradient designs
+  - Smooth animations
+  - Responsive layouts
+  - Tab-based navigation
 
-   ```bash
-   npx expo start
-   ```
+## 🚀 Quick Start
 
-In the output, you'll find options to open the app in a
+### Prerequisites
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- Node.js (v16+)
+- MongoDB (local or Atlas)
+- Expo CLI
+- Android Studio / Xcode (optional)
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+### Option 1: Automated Setup (Windows)
 
 ```bash
-npm run reset-project
+# Run the setup script
+start-dev.bat
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Option 2: Manual Setup
 
-## Learn more
+**1. Install Frontend Dependencies**
+```bash
+npm install
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+**2. Setup Backend**
+```bash
+cd backend
+npm install
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+**3. Configure Frontend**
+```bash
+cp .env.example .env
+# Edit .env with backend URL
+```
 
-## Join the community
+**4. Start Development Servers**
 
-Join our community of developers creating universal apps.
+Terminal 1 - Backend:
+```bash
+cd backend
+npm run dev
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Terminal 2 - Frontend:
+```bash
+npm start
+```
+
+## 📚 Documentation
+
+- **[SETUP_GUIDE.md](SETUP_GUIDE.md)** - Complete setup instructions
+- **[README_AUTH.md](README_AUTH.md)** - Authentication system documentation
+- **[BACKEND_SUMMARY.md](BACKEND_SUMMARY.md)** - Backend implementation details
+- **[backend/README.md](backend/README.md)** - Backend API documentation
+
+## 🏗️ Project Structure
+
+```
+SafeChem Portal/
+├── app/                    # React Native screens
+│   ├── (tabs)/            # Tab navigation screens
+│   │   ├── index.tsx      # Home screen
+│   │   ├── search.tsx     # Search screen
+│   │   ├── ai-chat.tsx    # AI chat screen
+│   │   └── profile.tsx    # Profile screen
+│   ├── auth/              # Authentication screens
+│   │   ├── login.tsx
+│   │   ├── signup.tsx
+│   │   └── forgot-password.tsx
+│   └── chemical/          # Chemical detail screens
+├── backend/               # Node.js/Express backend
+│   ├── src/
+│   │   ├── controllers/   # Request handlers
+│   │   ├── models/        # Database models
+│   │   ├── routes/        # API routes
+│   │   ├── middleware/    # Custom middleware
+│   │   └── utils/         # Helper functions
+│   └── package.json
+├── components/            # Reusable components
+├── contexts/             # React contexts
+├── services/             # API services
+├── types/                # TypeScript types
+└── utils/                # Utility functions
+```
+
+## 🔌 API Endpoints
+
+### Authentication
+- `POST /api/auth/signup` - Register new user
+- `POST /api/auth/login` - Login user
+- `POST /api/auth/logout` - Logout user
+- `POST /api/auth/forgot-password` - Request password reset
+- `POST /api/auth/refresh` - Refresh access token
+- `GET /api/auth/profile` - Get user profile
+- `PATCH /api/auth/profile` - Update user profile
+
+## 🛠️ Tech Stack
+
+### Frontend
+- React Native (Expo)
+- TypeScript
+- Expo Router (file-based routing)
+- AsyncStorage (secure storage)
+- NativeWind (Tailwind CSS)
+
+### Backend
+- Node.js
+- Express.js
+- MongoDB (Mongoose)
+- JWT Authentication
+- Nodemailer (email)
+- bcryptjs (password hashing)
+
+## 🔐 Security Features
+
+- ✅ Password hashing with bcrypt
+- ✅ JWT token authentication
+- ✅ Refresh token rotation
+- ✅ Rate limiting
+- ✅ Security headers (Helmet)
+- ✅ Input validation
+- ✅ CORS configuration
+- ✅ Error handling
+
+## 📱 Running the App
+
+### Development Build
+```bash
+npm start
+```
+
+### Android
+```bash
+npm run android
+```
+
+### iOS
+```bash
+npm run ios
+```
+
+### Web
+```bash
+npm run web
+```
+
+## 🧪 Testing
+
+### Test Backend API
+```bash
+# Health check
+curl http://localhost:3000/health
+
+# Sign up
+curl -X POST http://localhost:3000/api/auth/signup \
+  -H "Content-Type: application/json" \
+  -d '{"fullName":"Test User","email":"test@example.com","password":"test123"}'
+```
+
+## 🌐 Environment Variables
+
+### Frontend (.env)
+```env
+EXPO_PUBLIC_API_URL=http://localhost:3000/api
+```
+
+### Backend (backend/.env)
+```env
+PORT=3000
+MONGODB_URI=mongodb://localhost:27017/safechem
+JWT_SECRET=your-secret-key
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASSWORD=your-app-password
+```
+
+## 🚢 Deployment
+
+### Backend
+- Heroku
+- Railway
+- DigitalOcean
+- AWS
+
+### Frontend
+- EAS Build (Expo)
+- App Store
+- Google Play Store
+
+## 📝 License
+
+MIT
+
+## 🤝 Contributing
+
+Contributions welcome! Please read the documentation before submitting PRs.
+
+## 📧 Support
+
+For issues or questions, check the documentation or create an issue.
+
+---
+
+Built with ❤️ using React Native and Node.js

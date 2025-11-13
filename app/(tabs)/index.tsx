@@ -1,6 +1,9 @@
 import { ChemicalCard } from "@/components/ChemicalCard";
 import { LiquidGlassSearch } from "@/components/LiquidGlassSearch";
 import { Sidebar } from "@/components/Sidebar";
+import { SkeletonCard } from "@/components/SkeletonCard";
+import { useHybridSearch } from "@/hooks/useHybridSearch";
+import { getCompoundsByCIDs, PubChemCompound } from "@/services/pubchemApi";
 import { Chemical } from "@/types/chemical";
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -8,18 +11,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
+  FlatList,
+  RefreshControl,
   Text,
   TouchableOpacity,
   useColorScheme,
   View,
-  FlatList,
-  ActivityIndicator,
-  RefreshControl,
 } from "react-native";
-import { useHybridSearch } from "@/hooks/useHybridSearch";
-import { getCompoundsByCIDs, PubChemCompound } from "@/services/pubchemApi";
-
 
 // Random CID generation (same as pubchem-demo)
 const MAX_CID = 100000000;
@@ -41,28 +41,47 @@ const getRandomCIDs = (count: number): number[] => {
 const categorizeChemical = (name: string, formula: string): string => {
   const lowerName = name.toLowerCase();
   const lowerFormula = formula.toLowerCase();
-  
+
   if (lowerName.includes("acid")) return "Acid";
-  if (lowerName.includes("hydroxide") || lowerName.includes("base")) return "Base";
-  if (lowerName.includes("ethanol") || lowerName.includes("acetone") || lowerName.includes("methanol")) return "Solvent";
-  if (lowerName.includes("chloride") || lowerName.includes("salt")) return "Salt";
-  if (lowerFormula.includes("c") && lowerFormula.includes("h")) return "Organic";
+  if (lowerName.includes("hydroxide") || lowerName.includes("base"))
+    return "Base";
+  if (
+    lowerName.includes("ethanol") ||
+    lowerName.includes("acetone") ||
+    lowerName.includes("methanol")
+  )
+    return "Solvent";
+  if (lowerName.includes("chloride") || lowerName.includes("salt"))
+    return "Salt";
+  if (lowerFormula.includes("c") && lowerFormula.includes("h"))
+    return "Organic";
   return "Inorganic";
 };
 
 // Convert PubChem compound to Chemical
 const convertToChemical = (compound: PubChemCompound): Chemical => {
-  const hazardLevels: ("Low" | "Moderate" | "High" | "Extreme")[] = ["Low", "Moderate", "High", "Extreme"];
-  const randomHazard = hazardLevels[Math.floor(Math.random() * hazardLevels.length)];
-  
+  const hazardLevels: ("Low" | "Moderate" | "High" | "Extreme")[] = [
+    "Low",
+    "Moderate",
+    "High",
+    "Extreme",
+  ];
+  const randomHazard =
+    hazardLevels[Math.floor(Math.random() * hazardLevels.length)];
+
   return {
     id: compound.cid.toString(),
     name: compound.name || compound.iupacName || `Compound ${compound.cid}`,
     formula: compound.molecularFormula,
     casNumber: "",
-    category: categorizeChemical(compound.name || compound.iupacName || '', compound.molecularFormula) as any,
+    category: categorizeChemical(
+      compound.name || compound.iupacName || "",
+      compound.molecularFormula
+    ) as any,
     hazardLevel: randomHazard,
-    description: `Molecular Weight: ${compound.molecularWeight.toFixed(2)} g/mol`,
+    description: `Molecular Weight: ${compound.molecularWeight.toFixed(
+      2
+    )} g/mol`,
   };
 };
 
@@ -81,9 +100,15 @@ export default function HomeScreen() {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedPage, setFeedPage] = useState(0);
   const [refreshing, setRefreshing] = useState(false);
+  const [hasMoreData, setHasMoreData] = useState(true);
+  const loadingRef = useRef(false); // Prevent multiple simultaneous loads
 
   // Hybrid search
-  const { results: searchResults, loading: searchLoading, hasCachedResults } = useHybridSearch(searchQuery);
+  const {
+    results: searchResults,
+    loading: searchLoading,
+    hasCachedResults,
+  } = useHybridSearch(searchQuery);
 
   // Display logic: search results or feed
   const displayChemicals = useMemo(() => {
@@ -110,33 +135,54 @@ export default function HomeScreen() {
 
   // Load default feed
   const loadDefaultFeed = async () => {
+    if (loadingRef.current) return;
+    loadingRef.current = true;
     setFeedLoading(true);
     try {
-      const randomCIDs = getRandomCIDs(20);
+      const randomCIDs = getRandomCIDs(15); // Reduced from 20 to 15
       const compounds = await getCompoundsByCIDs(randomCIDs);
-      const chemicals = compounds.map(convertToChemical).filter(c => c.name && c.formula);
+      const chemicals = compounds
+        .map(convertToChemical)
+        .filter((c) => c.name && c.formula);
       setFeedChemicals(chemicals);
+      setHasMoreData(true);
     } catch (error) {
       console.error("Error loading feed:", error);
     } finally {
       setFeedLoading(false);
+      loadingRef.current = false;
     }
   };
 
   // Load more items
   const loadMoreFeedItems = async () => {
-    if (feedLoading || isSearchMode) return;
-    
+    if (loadingRef.current || !hasMoreData || isSearchMode) return;
+
+    // Limit total items to prevent infinite growth (like Twitter)
+    if (feedChemicals.length >= 100) {
+      setHasMoreData(false);
+      return;
+    }
+
+    loadingRef.current = true;
     setFeedLoading(true);
     try {
-      const randomCIDs = getRandomCIDs(20);
+      const randomCIDs = getRandomCIDs(10); // Reduced from 20 to 10
       const compounds = await getCompoundsByCIDs(randomCIDs);
-      const newChemicals = compounds.map(convertToChemical).filter(c => c.name && c.formula);
-      setFeedChemicals((prev) => [...prev, ...newChemicals]);
+      const newChemicals = compounds
+        .map(convertToChemical)
+        .filter((c) => c.name && c.formula);
+
+      if (newChemicals.length === 0) {
+        setHasMoreData(false);
+      } else {
+        setFeedChemicals((prev) => [...prev, ...newChemicals]);
+      }
     } catch (error) {
       console.error("Error loading more items:", error);
     } finally {
       setFeedLoading(false);
+      loadingRef.current = false;
     }
   };
 
@@ -144,6 +190,8 @@ export default function HomeScreen() {
   const handleReloadFeed = async () => {
     setRefreshing(true);
     setFeedPage(0);
+    setFeedChemicals([]); // Clear old data
+    setHasMoreData(true);
     await loadDefaultFeed();
     setRefreshing(false);
   };
@@ -191,82 +239,103 @@ export default function HomeScreen() {
     router.push(`/chemical/${id}` as any);
   };
 
+  const renderHeader = () => (
+    <LinearGradient
+      colors={isDark ? ["#111B21", "#1F2C34"] : ["#FFFFFF", "#F7F9F9"]}
+      style={{
+        borderBottomLeftRadius: 40,
+        borderBottomRightRadius: 40,
+      }}
+    >
+      <View className="pt-28 px-6 pb-4">
+        <View className="flex-row items-center mb-2">
+          <Text
+            className="text-3xl font-bold mr-3"
+            style={{ color: isDark ? "#E9EDEF" : "#0F1419" }}
+          >
+            Hi, Chemist!
+          </Text>
+          <Ionicons name="flask" size={32} color="#10B981" />
+        </View>
+        <Text
+          className="text-base mb-2"
+          style={{ color: isDark ? "#8696A0" : "#536471" }}
+        >
+          Search and explore safety data sheets
+        </Text>
+      </View>
+
+      <LiquidGlassSearch
+        value={searchQuery}
+        onChangeText={handleSearchChange}
+        placeholder="Search chemicals, CAS, formula..."
+      />
+    </LinearGradient>
+  );
+
+  if (feedLoading && feedChemicals.length === 0) {
+    return (
+      <View
+        className="flex-1"
+        style={{ backgroundColor: isDark ? "#111B21" : "#FFFFFF" }}
+      >
+        {renderHeader()}
+        {[...Array(5)].map((_, i) => (
+          <SkeletonCard key={i} />
+        ))}
+      </View>
+    );
+  }
+
   return (
     <View
       className="flex-1"
       style={{ backgroundColor: isDark ? "#111B21" : "#FFFFFF" }}
     >
-      <Animated.ScrollView
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false }
-        )}
-        scrollEventThrottle={16}
-      >
-        {/* U-Shaped Hero */}
-        <LinearGradient
-          colors={isDark ? ["#111B21", "#1F2C34"] : ["#FFFFFF", "#F7F9F9"]}
-          style={{
-            borderBottomLeftRadius: 40,
-            borderBottomRightRadius: 40,
-          }}
-        >
-          <View className="pt-28 px-6 pb-4">
-            <View className="flex-row items-center mb-2">
-              <Text
-                className="text-3xl font-bold mr-3"
-                style={{ color: isDark ? "#E9EDEF" : "#0F1419" }}
-              >
-                Hi, Chemist!
-              </Text>
-              <Ionicons name="flask" size={32} color="#10B981" />
-            </View>
-            <Text
-              className="text-base mb-2"
-              style={{ color: isDark ? "#8696A0" : "#536471" }}
-            >
-              Search and explore safety data sheets
-            </Text>
-          </View>
-
-          {/* Liquid Glass Search inside hero */}
-          <LiquidGlassSearch
-            value={searchQuery}
-            onChangeText={handleSearchChange}
-            placeholder="Search chemicals, CAS, formula..."
+      <FlatList
+        data={displayChemicals}
+        ListHeaderComponent={renderHeader}
+        renderItem={({ item, index }) => (
+          <ChemicalCard
+            chemical={item}
+            onPress={() => handleChemicalPress(item.id)}
+            index={index}
           />
-        </LinearGradient>
-
-        {/* Chemical Cards - FlatList for infinite scroll */}
-        <FlatList
-          data={displayChemicals}
-          renderItem={({ item }) => (
-            <ChemicalCard
-              chemical={item}
-              onPress={() => handleChemicalPress(item.id)}
-            />
-          )}
-          keyExtractor={(item) => item.id}
-          onEndReached={handleLoadMore}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            feedLoading ? (
-              <View className="py-6">
-                <ActivityIndicator size="large" color="#10B981" />
-              </View>
-            ) : null
-          }
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={handleReloadFeed}
-              colors={["#10B981"]}
-              tintColor="#10B981"
-            />
-          }
-        />
-      </Animated.ScrollView>
+        )}
+        keyExtractor={(item) => item.id}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.8}
+        maxToRenderPerBatch={10}
+        windowSize={10}
+        removeClippedSubviews={true}
+        initialNumToRender={10}
+        updateCellsBatchingPeriod={50}
+        showsVerticalScrollIndicator={false}
+        ListFooterComponent={
+          feedLoading ? (
+            <View className="py-6">
+              <ActivityIndicator size="large" color="#10B981" />
+            </View>
+          ) : !hasMoreData && feedChemicals.length > 0 ? (
+            <View className="py-6">
+              <Text
+                className="text-center text-sm"
+                style={{ color: isDark ? "#8696A0" : "#536471" }}
+              >
+                That&apos;s all for now! Pull to refresh
+              </Text>
+            </View>
+          ) : null
+        }
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleReloadFeed}
+            colors={["#10B981"]}
+            tintColor="#10B981"
+          />
+        }
+      />
 
       {/* Sticky Hamburger Menu Button */}
       <TouchableOpacity
