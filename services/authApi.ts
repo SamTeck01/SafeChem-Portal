@@ -34,6 +34,13 @@ export interface ForgotPasswordData {
   email: string;
 }
 
+export interface GoogleLoginData {
+  googleId: string;
+  email: string;
+  fullName: string;
+  picture?: string;
+}
+
 class AuthApiService {
   private token: string | null = null;
 
@@ -109,6 +116,26 @@ class AuthApiService {
       return authResponse;
     } catch (error) {
       console.error('Login error:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Google login/signup
+   */
+  async googleLogin(data: GoogleLoginData): Promise<AuthResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/google`, {
+        method: 'POST',
+        headers: this.getHeaders(),
+        body: JSON.stringify(data),
+      });
+
+      const authResponse = await this.handleResponse<AuthResponse>(response);
+      await this.storeAuthData(authResponse);
+      return authResponse;
+    } catch (error) {
+      console.error('Google login error:', error);
       throw error;
     }
   }

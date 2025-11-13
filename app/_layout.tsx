@@ -20,8 +20,6 @@ export default function RootLayout() {
         <Stack.Screen name="auth/login" />
         <Stack.Screen name="auth/signup" />
         <Stack.Screen name="auth/forgot-password" />
-        <Stack.Screen name="pubchem-demo" options={{ title: "PubChem Demo" }} />
-        <Stack.Screen name="search-results" options={{ title: "Search Results" }} />
       </Stack>
       <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
     </AuthProvider>

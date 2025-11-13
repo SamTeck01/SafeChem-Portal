@@ -14,14 +14,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGoogleAuth } from '../../services/googleAuth';
+import { authApi } from '../../services/authApi';
 
 export default function SignUpScreen() {
   const router = useRouter();
   const { signUp, isLoading } = useAuth();
+  const { signInWithGoogle } = useGoogleAuth();
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,13 +54,38 @@ export default function SignUpScreen() {
         email: email.trim().toLowerCase(),
         password,
       });
-      Alert.alert('Success', 'Account created successfully!');
       router.replace('/(tabs)');
     } catch (error) {
       Alert.alert(
         'Sign Up Failed',
         error instanceof Error ? error.message : 'Failed to create account. Please try again.'
       );
+    }
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      setIsGoogleLoading(true);
+      const userInfo = await signInWithGoogle();
+      
+      if (userInfo) {
+        // Send Google user info to backend
+        await authApi.googleLogin({
+          googleId: userInfo.id,
+          email: userInfo.email,
+          fullName: userInfo.name,
+          picture: userInfo.picture,
+        });
+        
+        router.replace('/(tabs)');
+      }
+    } catch (error) {
+      Alert.alert(
+        'Google Sign-In Failed',
+        error instanceof Error ? error.message : 'Failed to sign in with Google'
+      );
+    } finally {
+      setIsGoogleLoading(false);
     }
   };
 
@@ -75,14 +104,6 @@ export default function SignUpScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.content}
       >
-        {/* Back Button */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={28} color="#fff" />
-        </TouchableOpacity>
-
         {/* Title */}
         <View style={styles.titleContainer}>
           <Text style={styles.title}>Create</Text>
@@ -166,6 +187,29 @@ export default function SignUpScreen() {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Divider */}
+          <View style={styles.dividerContainer}>
+            <View style={styles.divider} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.divider} />
+          </View>
+
+          {/* Google Sign-In Button */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleSignIn}
+            disabled={isGoogleLoading || isLoading}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator color="#2d5875" />
+            ) : (
+              <>
+                <Ionicons name="logo-google" size={24} color="#2d5875" />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
           {/* Bottom Link */}
           <View style={styles.linksContainer}>
@@ -291,5 +335,42 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.6,
+  },
+  dividerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 24,
+  },
+  divider: {
+    flex: 1,
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  dividerText: {
+    color: '#fff',
+    paddingHorizontal: 16,
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 20,
+    marginBottom: 20,
+    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  googleButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2d5875',
   },
 });

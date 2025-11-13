@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -16,6 +16,18 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { user, logout, isLoading } = useAuth();
 
+  // If no user after loading, redirect to login
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/auth/login');
+    }
+  }, [isLoading, user, router]);
+
+  // Show nothing while loading or if no user
+  if (isLoading || !user) {
+    return null;
+  }
+
   const handleLogout = () => {
     Alert.alert(
       'Logout',
@@ -31,8 +43,10 @@ export default function ProfileScreen() {
           onPress: async () => {
             try {
               await logout();
-              router.replace('/auth/login');
+              // Force navigation to login screen
+              router.replace('/');
             } catch (error) {
+              console.error('Logout error:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
             }
           },
@@ -56,8 +70,8 @@ export default function ProfileScreen() {
               <Ionicons name="person" size={48} color="#fff" />
             </View>
           </View>
-          <Text style={styles.userName}>{user?.fullName || 'User'}</Text>
-          <Text style={styles.userEmail}>{user?.email || 'email@example.com'}</Text>
+          <Text style={styles.userName}>{user?.fullName}</Text>
+          <Text style={styles.userEmail}>{user?.email}</Text>
         </View>
 
         {/* Menu Items */}
@@ -86,7 +100,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push('/profile/saved')}
+            onPress={() => router.push('/profile/saved' as any)}
           >
             <View style={styles.menuItemLeft}>
               <Ionicons name="bookmark-outline" size={24} color="#2d5875" />
@@ -97,7 +111,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push('/profile/history')}
+            onPress={() => router.push('/profile/history' as any)}
           >
             <View style={styles.menuItemLeft}>
               <Ionicons name="time-outline" size={24} color="#2d5875" />
@@ -111,7 +125,7 @@ export default function ProfileScreen() {
         <View style={styles.menuSection}>
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push('/profile/about')}
+            onPress={() => router.push('/profile/about' as any)}
           >
             <View style={styles.menuItemLeft}>
               <Ionicons name="information-circle-outline" size={24} color="#2d5875" />
@@ -122,7 +136,7 @@ export default function ProfileScreen() {
 
           <TouchableOpacity
             style={styles.menuItem}
-            onPress={() => router.push('/profile/help')}
+            onPress={() => router.push('/profile/about' as any)}
           >
             <View style={styles.menuItemLeft}>
               <Ionicons name="help-circle-outline" size={24} color="#2d5875" />

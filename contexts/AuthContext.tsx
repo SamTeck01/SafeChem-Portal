@@ -1,5 +1,16 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { authApi, User, LoginCredentials, SignUpCredentials } from '../services/authApi';
+import React, {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from "react";
+import {
+  authApi,
+  LoginCredentials,
+  SignUpCredentials,
+  User,
+} from "../services/authApi";
 
 interface AuthContextType {
   user: User | null;
@@ -29,14 +40,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const initializeAuth = async () => {
     try {
       await authApi.initialize();
+      const token = await authApi.getToken();
       const currentUser = await authApi.getCurrentUser();
-      const isAuth = await authApi.isAuthenticated();
-      
-      if (isAuth && currentUser) {
+
+      // Simple: if we have both token and user, we're authenticated
+      if (token && currentUser) {
         setUser(currentUser);
+      } else {
+        // No token or no user = not authenticated
+        setUser(null);
       }
     } catch (error) {
-      console.error('Failed to initialize auth:', error);
+      console.error("Failed to initialize auth:", error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -48,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authApi.login(credentials);
       setUser(response.user);
     } catch (error) {
-      console.error('Login failed:', error);
+      console.error("Login failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -61,7 +77,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const response = await authApi.signUp(credentials);
       setUser(response.user);
     } catch (error) {
-      console.error('Sign up failed:', error);
+      console.error("Sign up failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -74,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await authApi.logout();
       setUser(null);
     } catch (error) {
-      console.error('Logout failed:', error);
+      console.error("Logout failed:", error);
       throw error;
     } finally {
       setIsLoading(false);
@@ -86,7 +102,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const currentUser = await authApi.getCurrentUser();
       setUser(currentUser);
     } catch (error) {
-      console.error('Failed to refresh user:', error);
+      console.error("Failed to refresh user:", error);
     }
   };
 
@@ -106,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 export function useAuth() {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 }
